@@ -71,29 +71,40 @@ public class TailMesh : MonoBehaviour
     {        
         rotations = new Quaternion[length];
         segmentPoses = new Vector3[length];
+        for (int i = 0; i < length; i++)
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 1, transform.position.z);
+        
         segmentV = new Vector3[length];
         radius = new float[length];
         forwards = new Vector3[length];
         mesh = new Mesh();
         mesh.name = "Tail";
         GetComponent<MeshFilter>().sharedMesh = mesh;
-        //ResetPos();
+        
+        ResetPos();
         
     }
     private void OnEnable()
     {        
         rotations = new Quaternion[length];
         segmentPoses = new Vector3[length];
+        for (int i = 0; i < length; i++)
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z + (-i * targetDist));
         segmentV = new Vector3[length];
         radius = new float[length];
         forwards = new Vector3[length];
         mesh = new Mesh();
         mesh.name = "Tail";
         GetComponent<MeshFilter>().sharedMesh = mesh;
-        //ResetPos();
+        ResetPos();
     }
 
+    void ResetPos()
+    {
+        for (int i = 0; i < length; i++)
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z + (-i * targetDist));
 
+    }
     
     private void Update()
     {
@@ -145,7 +156,11 @@ public class TailMesh : MonoBehaviour
         if (rotations.Length != length)
             rotations = new Quaternion[length];
         if (segmentPoses.Length != length)
+        {
             segmentPoses = new Vector3[length];
+            for (int i = 0; i < length; i++)
+                segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z + (-i * targetDist));
+        }
         if (segmentV.Length != length)
             segmentV = new Vector3[length];
         if (radius.Length != length)
@@ -203,19 +218,15 @@ public class TailMesh : MonoBehaviour
                     Vector3 targetPos = (segmentPoses[i - 1] + (segmentPoses[i] - segmentPoses[i - 1]).normalized * targetDist) - targetDir.forward * 0.05f; //*targetDist opcional
 
                     Vector3 segmentPos;
-                    if (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) >= targetDist)
+                    segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / ((trailSpeed * 100f) + (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 300f));
+                    
+                    
+                    if (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) < Vector3.Distance(targetPos, segmentPoses[i - 1]))
                     {
-                        segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 300f));
-                        //segmentPos = targetPos;
-                    }
-                    else
-                    {
-                        //segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 300f));
+                        //segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 1000f));
                         segmentPos = targetPos;
-                        //segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * 100f));
-                        
-                    }
-
+                    }                    
+                    
                     //segmentPoses[i] = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 200f));
                     segmentPoses[i] = segmentPos;
                 }
@@ -239,14 +250,14 @@ public class TailMesh : MonoBehaviour
 
         for (int i = 1; i < segmentPoses.Length; i++)
         {
-
+            
             if (segmentPoses[i] - segmentPoses[i - 1] != Vector3.zero)
             {
                 tangentB = (segmentPoses[i] - segmentPoses[i - 1]).normalized;
             }
 
             Vector3 nextTangentB = -targetDir.TransformDirection(Vector3.forward);
-            if (i < segmentPoses.Length - 1)
+            if (i < segmentPoses.Length - 1 && Vector3.Distance(segmentPoses[i+1], segmentPoses[i]) != 0)
             {
                 nextTangentB = (segmentPoses[i + 1] - segmentPoses[i]).normalized;
             }
@@ -254,14 +265,16 @@ public class TailMesh : MonoBehaviour
 
 
             Vector3 bisectriz = (tangentB + nextTangentB).normalized;
+
             //Vector3 bisectrizPerp = new Vector3(bisectriz.y, -bisectriz.x, bisectriz.z);
             //Vector3 bisectrizPerpB = new Vector3(Mathf.Abs(bisectrizPerp.x), Mathf.Abs(bisectrizPerp.y), Mathf.Abs(bisectrizPerp.z));
             Quaternion rot;
             if (!forwardTangent)
-                rot = Quaternion.LookRotation(-bisectriz, targetDir.TransformDirection(Vector3.right)); // it was only Vector3.up
+                rot = Quaternion.LookRotation(-bisectriz, targetDir.TransformDirection(Vector3.right));
             else
-                rot = Quaternion.LookRotation(-bisectriz, targetDir.TransformDirection(Vector3.up)); // it was only Vector3.up
-            //Quaternion rotB = Quaternion.LookRotation(-bisectriz, targetDir.TransformDirection(Vector3.up)); // it was only Vector3.up
+                rot = Quaternion.LookRotation(-bisectriz, targetDir.TransformDirection(Vector3.up));
+
+
 
 
             transHelper.rotation = rot;
