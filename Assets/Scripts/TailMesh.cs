@@ -19,7 +19,8 @@ public class TailMesh : MonoBehaviour
         snake
     }
     public type movementType;
-    public bool forwardTangent;    
+    public bool forwardTangent;
+    [Range(3, 40)]
     public int length = 10;
     [Range(3, 32)]
     [SerializeField] int angularSegmentCount = 6;
@@ -30,10 +31,10 @@ public class TailMesh : MonoBehaviour
 
     Mesh mesh;
 
-    public Vector3[] segmentPoses;
-    public Quaternion[] rotations;
-    [SerializeField] private Vector3[] segmentV;
-    public float[] radius;
+    private Vector3[] segmentPoses;
+    private Quaternion[] rotations;
+    private Vector3[] segmentV;
+    private float[] radius;
 
 
     public Transform targetDir;
@@ -72,7 +73,7 @@ public class TailMesh : MonoBehaviour
         rotations = new Quaternion[length];
         segmentPoses = new Vector3[length];
         for (int i = 0; i < length; i++)
-            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 1, transform.position.z);
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.2f, transform.position.z);
         
         segmentV = new Vector3[length];
         radius = new float[length];
@@ -89,7 +90,7 @@ public class TailMesh : MonoBehaviour
         rotations = new Quaternion[length];
         segmentPoses = new Vector3[length];
         for (int i = 0; i < length; i++)
-            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z + (-i * targetDist));
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.2f, transform.position.z + (-i * targetDist));
         segmentV = new Vector3[length];
         radius = new float[length];
         forwards = new Vector3[length];
@@ -102,7 +103,7 @@ public class TailMesh : MonoBehaviour
     void ResetPos()
     {
         for (int i = 0; i < length; i++)
-            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z + (-i * targetDist));
+            segmentPoses[i] = new Vector3(transform.position.x, transform.position.y + 0.2f, transform.position.z + (-i * targetDist));
 
     }
     
@@ -204,8 +205,7 @@ public class TailMesh : MonoBehaviour
                     radius[i] = radiusCurve.Evaluate((1f / segmentPoses.Length) * i);
                     float angleBetweenParts = Vector3.Angle(forwards[i], forwards[i - 1]);
                     Mathf.Clamp(angleBetweenParts, 0, 90);                    
-                    Vector3 desiredForward = Vector3.SmoothDamp(forwards[i], forwards[i - 1], ref segmentV[i], (smoothSpeed + i / (trailSpeed + (i * 10f))) - (angleBetweenParts * 0.0002f));
-                    //Vector3 desiredForward = Vector3.SmoothDamp(forwards[i], forwards[i - 1], ref segmentV[i], (smoothSpeed - (angleBetweenParts * 0.001f)));
+                    Vector3 desiredForward = Vector3.SmoothDamp(forwards[i], forwards[i - 1], ref segmentV[i], (smoothSpeed + i / (trailSpeed + (i * 10f))) - (angleBetweenParts * 0.0002f));                    
                     forwards[i] = desiredForward;
                     segmentPoses[i] = segmentPoses[i - 1] - forwards[i] * targetDist;
                 }
@@ -215,19 +215,20 @@ public class TailMesh : MonoBehaviour
                 for (int i = 1; i < segmentPoses.Length; i++)
                 {
                     radius[i] = radiusCurve.Evaluate((1f / segmentPoses.Length) * i);
-                    Vector3 targetPos = (segmentPoses[i - 1] + (segmentPoses[i] - segmentPoses[i - 1]).normalized * targetDist) - targetDir.forward * 0.05f; //*targetDist opcional
+                    Vector3 targetPos = (segmentPoses[i - 1] + (segmentPoses[i] - segmentPoses[i - 1]).normalized * targetDist) - targetDir.forward * 0.05f;
 
                     Vector3 segmentPos;
-                    segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / ((trailSpeed * 100f) + (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 300f));
+                    segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i],
+                        smoothSpeed + i / ((trailSpeed * 100f) + (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 300f));
                     
-                    
+                    /*
                     if (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) < Vector3.Distance(targetPos, segmentPoses[i - 1]))
                     {
                         //segmentPos = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 1000f));
                         segmentPos = targetPos;
                     }                    
+                    */
                     
-                    //segmentPoses[i] = Vector3.SmoothDamp(segmentPoses[i], targetPos, ref segmentV[i], smoothSpeed + i / (trailSpeed * (Vector3.Distance(segmentPoses[i], segmentPoses[i - 1]) - targetDist) * 200f));
                     segmentPoses[i] = segmentPos;
                 }
 
@@ -261,7 +262,8 @@ public class TailMesh : MonoBehaviour
             {
                 nextTangentB = (segmentPoses[i + 1] - segmentPoses[i]).normalized;
             }
-            Vector3 perpendicular = new Vector3(tangentB.y, -tangentB.x, tangentB.z);
+            
+            //Vector3 perpendicular = new Vector3(tangentB.y, -tangentB.x, tangentB.z);
 
 
             Vector3 bisectriz = (tangentB + nextTangentB).normalized;
@@ -300,20 +302,11 @@ public class TailMesh : MonoBehaviour
                 rotC *= Quaternion.Euler(Vector3.forward * -180);           
             rotations[i] = rotC;
 
-            
-            
-
 
             if (i == segmentPoses.Length - 1)
-                radius[i] = 0f;
-
-
-            
-            //lastTangent = tangentB;
-            //lastRot = rotations[i];
-            //lastBisec = bisec;
-            //lastPerp = perp;
+                radius[i] = 0f;            
         }
+
         lastPos = transform.position;
         GenerateMesh();
     }
@@ -323,8 +316,9 @@ public class TailMesh : MonoBehaviour
 
 #if UNITY_EDITOR
     public void OnDrawGizmosSelected()
-    {        
-        Update();
+    {      
+        if (length > 2)
+            Update();
     }
 
 #endif
